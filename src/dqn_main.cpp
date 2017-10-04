@@ -26,6 +26,7 @@ DEFINE_string(critic_weights, "", "The critic pretrained weights load (*.caffemo
 DEFINE_string(actor_snapshot, "", "The actor solver state to load (*.solverstate).");
 DEFINE_string(critic_snapshot, "", "The critic solver state to load (*.solverstate).");
 DEFINE_string(memory_snapshot, "", "The replay memory to load (*.replaymemory).");
+DEFINE_bool(save_memory, false, "Save the experience replay as well in every snapshot.");
 // Solver Args
 DEFINE_string(solver, "Adam", "Solver Type.");
 DEFINE_double(momentum, .95, "Solver momentum.");
@@ -64,9 +65,9 @@ std::mutex MTX;
 
 double CalculateEpsilon(const int iter) {
   if (iter < FLAGS_explore) {
-    return 1.0 - (1.0 - FLAGS_epsilon) * (static_cast<double>(iter) / FLAGS_explore);
+	return 1.0 - (1.0 - FLAGS_epsilon) * (static_cast<double>(iter) / FLAGS_explore);
   } else {
-    return FLAGS_epsilon;
+	return FLAGS_epsilon;
   }
 }
 
@@ -75,9 +76,9 @@ std::string GetArg(std::string input, int indx) {
   std::string token;
   int i = 0;
   while(std::getline(ss, token, ',')) {
-    if (i++ == indx) {
-      return token;
-    }
+	if (i++ == indx) {
+	  return token;
+	}
   }
   return "";
 }
@@ -87,7 +88,7 @@ void little_sleep(std::chrono::microseconds us) {
   auto start = std::chrono::high_resolution_clock::now();
   auto end = start + us;
   do {
-    std::this_thread::yield();
+	std::this_thread::yield();
   } while (std::chrono::high_resolution_clock::now() < end);
 }
 
@@ -95,10 +96,10 @@ void little_sleep(std::chrono::microseconds us) {
  * Play one episode and return the total score and number of steps
  */
 std::tuple<double, int, status_t, double> PlayOneEpisode(HFOEnvironment& hfo,
-                                                         dqn::DQN& dqn,
-                                                         const double epsilon,
-                                                         const bool update,
-                                                         const int tid) {
+														 dqn::DQN& dqn,
+														 const double epsilon,
+														 const bool update,
+														 const int tid) {
   std::vector<dqn::Transition> episode;
   HFOGameState game(dqn.unum());
   hfo.act(DASH, 0, 0);
@@ -106,62 +107,62 @@ std::tuple<double, int, status_t, double> PlayOneEpisode(HFOEnvironment& hfo,
   CHECK(!game.episode_over) << "Episode should not be over at beginning!";
   std::deque<dqn::StateDataSp> past_states;
   while (!game.episode_over) {
-    const std::vector<float>& current_state = hfo.getState();
-    CHECK_EQ(current_state.size(), dqn.state_size());
-    dqn::StateDataSp current_state_sp
-        = std::make_shared<dqn::StateData>(dqn.state_size());
-    std::copy(current_state.begin(), current_state.end(), current_state_sp->begin());
-    past_states.push_back(current_state_sp);
-    if (past_states.size() < dqn::kStateInputCount) {
-      hfo.act(DASH, 0, 0);
-    } else {
-      while (past_states.size() > dqn::kStateInputCount) {
-        past_states.pop_front();
-      }
-      dqn::InputStates input_states;
-      std::copy(past_states.begin(), past_states.end(), input_states.begin());
-      dqn::ActorOutput actor_output = dqn.SelectAction(input_states, epsilon);
-      VLOG(1) << "Step " << game.steps;
-      VLOG(1) << "Actor_output: " << dqn::PrintActorOutput(actor_output);
-      Action action = dqn::GetAction(actor_output);
-      VLOG(1) << "q_value: " << dqn.EvaluateAction(input_states, actor_output)
-              << " Action: " << hfo::ActionToString(action.action);
-      hfo.act(action.action, action.arg1, action.arg2);
-      game.update(hfo);
-      float reward = game.reward();
-      if (update) {
-        const std::vector<float>& next_state = hfo.getState();
-        CHECK_EQ(next_state.size(), dqn.state_size());
-        dqn::StateDataSp next_state_sp
-            = std::make_shared<dqn::StateData>(dqn.state_size());
-        std::copy(next_state.begin(), next_state.end(), next_state_sp->begin());
-        const auto transition = (game.status == IN_GAME) ?
-            dqn::Transition(input_states, actor_output, reward, 0, next_state_sp):
-            dqn::Transition(input_states, actor_output, reward, 0, boost::none);
-        episode.push_back(transition);
-      }
-    }
+	const std::vector<float>& current_state = hfo.getState();
+	CHECK_EQ(current_state.size(), dqn.state_size());
+	dqn::StateDataSp current_state_sp
+		= std::make_shared<dqn::StateData>(dqn.state_size());
+	std::copy(current_state.begin(), current_state.end(), current_state_sp->begin());
+	past_states.push_back(current_state_sp);
+	if (past_states.size() < dqn::kStateInputCount) {
+	  hfo.act(DASH, 0, 0);
+	} else {
+	  while (past_states.size() > dqn::kStateInputCount) {
+		past_states.pop_front();
+	  }
+	  dqn::InputStates input_states;
+	  std::copy(past_states.begin(), past_states.end(), input_states.begin());
+	  dqn::ActorOutput actor_output = dqn.SelectAction(input_states, epsilon);
+	  VLOG(1) << "Step " << game.steps;
+	  VLOG(1) << "Actor_output: " << dqn::PrintActorOutput(actor_output);
+	  Action action = dqn::GetAction(actor_output);
+	  VLOG(1) << "q_value: " << dqn.EvaluateAction(input_states, actor_output)
+			  << " Action: " << hfo::ActionToString(action.action);
+	  hfo.act(action.action, action.arg1, action.arg2);
+	  game.update(hfo);
+	  float reward = game.reward();
+	  if (update) {
+		const std::vector<float>& next_state = hfo.getState();
+		CHECK_EQ(next_state.size(), dqn.state_size());
+		dqn::StateDataSp next_state_sp
+			= std::make_shared<dqn::StateData>(dqn.state_size());
+		std::copy(next_state.begin(), next_state.end(), next_state_sp->begin());
+		const auto transition = (game.status == IN_GAME) ?
+			dqn::Transition(input_states, actor_output, reward, 0, next_state_sp):
+			dqn::Transition(input_states, actor_output, reward, 0, boost::none);
+		episode.push_back(transition);
+	  }
+	}
   }
   if (update) {
-    if (FLAGS_share_replay_memory) { MTX.lock(); }
-    dqn.LabelTransitions(episode);
-    dqn.AddTransitions(episode);
-    if (FLAGS_share_replay_memory) { MTX.unlock(); }
+	if (FLAGS_share_replay_memory) { MTX.lock(); }
+	dqn.LabelTransitions(episode);
+	dqn.AddTransitions(episode);
+	if (FLAGS_share_replay_memory) { MTX.unlock(); }
   }
   return std::make_tuple(game.total_reward, game.steps, game.status,
-                         game.extrinsic_reward);
+						 game.extrinsic_reward);
 }
 
 template <class T>
 std::pair<double,double> get_avg_std(std::vector<T> data) {
   double sum = 0;
   for (int i = 0; i < data.size(); ++i) {
-    sum += data[i];
+	sum += data[i];
   }
   double avg = sum / static_cast<double>(data.size());
   double std = 0;
   for (int i = 0; i < data.size(); ++i) {
-    std += (data[i] - avg) * (data[i] - avg);
+	std += (data[i] - avg) * (data[i] - avg);
   }
   std = sqrt(std / static_cast<double>(data.size() - 1));
   return std::make_pair(avg, std);
@@ -170,60 +171,60 @@ std::pair<double,double> get_avg_std(std::vector<T> data) {
 
 double Evaluate(HFOEnvironment& hfo, dqn::DQN& dqn, int tid) {
   LOG(INFO) << "[Agent" << tid << "] Evaluating for " << FLAGS_repeat_games
-            << " episodes with epsilon = " << FLAGS_evaluate_with_epsilon;
+			<< " episodes with epsilon = " << FLAGS_evaluate_with_epsilon;
   std::vector<double> scores;
   std::vector<int> steps;
   std::vector<int> successful_trial_steps;
   int goals = 0;
   for (int i = 0; i < FLAGS_repeat_games; ++i) {
-    auto result = PlayOneEpisode(hfo, dqn, FLAGS_evaluate_with_epsilon, false, tid);
-    double trial_reward = std::get<0>(result);
-    int trial_steps = std::get<1>(result);
-    status_t trial_status = std::get<2>(result);
-    scores.push_back(trial_reward);
-    steps.push_back(trial_steps);
-    if (trial_status == GOAL) {
-      goals++;
-      successful_trial_steps.push_back(trial_steps);
-    }
+	auto result = PlayOneEpisode(hfo, dqn, FLAGS_evaluate_with_epsilon, false, tid);
+	double trial_reward = std::get<0>(result);
+	int trial_steps = std::get<1>(result);
+	status_t trial_status = std::get<2>(result);
+	scores.push_back(trial_reward);
+	steps.push_back(trial_steps);
+	if (trial_status == GOAL) {
+	  goals++;
+	  successful_trial_steps.push_back(trial_steps);
+	}
   }
   std::pair<double, double> score_dist = get_avg_std(scores);
   std::pair<double, double> steps_dist = get_avg_std(steps);
   std::pair<double, double> succ_steps_dist = get_avg_std(successful_trial_steps);
   float goal_percent = goals / float(FLAGS_repeat_games);
   LOG(INFO) << "[Agent" << tid << "] Evaluation: "
-            << "actor_iter = " << dqn.actor_iter()
-            << ", avg_reward = " << score_dist.first
-            << ", reward_std = " << score_dist.second
-            << ", avg_steps = " << steps_dist.first
-            << ", steps_std = " << steps_dist.second
-            << ", success_steps = " << succ_steps_dist.first
-            << ", success_std = " << succ_steps_dist.second
-            << ", goal_perc = " << goal_percent;
+			<< "actor_iter = " << dqn.actor_iter()
+			<< ", avg_reward = " << score_dist.first
+			<< ", reward_std = " << score_dist.second
+			<< ", avg_steps = " << steps_dist.first
+			<< ", steps_std = " << steps_dist.second
+			<< ", success_steps = " << succ_steps_dist.first
+			<< ", success_std = " << succ_steps_dist.second
+			<< ", goal_perc = " << goal_percent;
   return goal_percent;
 }
 
 void KeepPlayingGames(int tid, std::string save_prefix, int port) {
   LOG(INFO) << "Thread " << tid << ", port=" << port << ", save_prefix=" << save_prefix;
   if (FLAGS_gpu) {
-    caffe::Caffe::set_mode(caffe::Caffe::GPU);
+	caffe::Caffe::set_mode(caffe::Caffe::GPU);
   } else {
-    caffe::Caffe::set_mode(caffe::Caffe::CPU);
+	caffe::Caffe::set_mode(caffe::Caffe::CPU);
   }
   // Look for a recent snapshot to resume
   std::string resume_path = FLAGS_resume.empty() ? save_prefix : FLAGS_resume;
   std::string last_actor_snapshot, last_critic_snapshot, last_memory_snapshot;
   dqn::FindLatestSnapshot(resume_path, last_actor_snapshot,
-                          last_critic_snapshot, last_memory_snapshot);
+						  last_critic_snapshot, last_memory_snapshot);
   LOG(INFO) << "Found Resumable(s): [" << resume_path << "] "
-            << last_actor_snapshot << ", " << last_critic_snapshot
-            << ", " << last_memory_snapshot;
+			<< last_actor_snapshot << ", " << last_critic_snapshot
+			<< ", " << last_memory_snapshot;
   CHECK((FLAGS_critic_snapshot.empty() || FLAGS_critic_weights.empty()) &&
-        (FLAGS_actor_snapshot.empty() || FLAGS_actor_weights.empty()))
-      << "Give a snapshot or weights but not both.";
+		(FLAGS_actor_snapshot.empty() || FLAGS_actor_weights.empty()))
+	  << "Give a snapshot or weights but not both.";
   int num_players = FLAGS_offense_agents + FLAGS_offense_npcs
-      + FLAGS_offense_dummies + FLAGS_defense_agents + FLAGS_defense_npcs
-      + FLAGS_defense_dummies + FLAGS_defense_chasers;
+	  + FLAGS_offense_dummies + FLAGS_defense_agents + FLAGS_defense_npcs
+	  + FLAGS_defense_dummies + FLAGS_defense_chasers;
   int num_features = NumStateFeatures(num_players);
   // Construct the solver
   caffe::SolverParameter actor_solver_param;
@@ -231,18 +232,18 @@ void KeepPlayingGames(int tid, std::string save_prefix, int port) {
   caffe::NetParameter* actor_net_param = actor_solver_param.mutable_net_param();
   std::string actor_net_filename = save_prefix + "_actor.prototxt";
   if (boost::filesystem::is_regular_file(actor_net_filename)) {
-    caffe::ReadProtoFromTextFileOrDie(actor_net_filename.c_str(), actor_net_param);
+	caffe::ReadProtoFromTextFileOrDie(actor_net_filename.c_str(), actor_net_param);
   } else {
-    actor_net_param->CopyFrom(dqn::CreateActorNet(num_features));
-    WriteProtoToTextFile(*actor_net_param, actor_net_filename.c_str());
+	actor_net_param->CopyFrom(dqn::CreateActorNet(num_features));
+	WriteProtoToTextFile(*actor_net_param, actor_net_filename.c_str());
   }
   caffe::NetParameter* critic_net_param = critic_solver_param.mutable_net_param();
   std::string critic_net_filename = save_prefix + "_critic.prototxt";
   if (boost::filesystem::is_regular_file(critic_net_filename)) {
-    caffe::ReadProtoFromTextFileOrDie(critic_net_filename.c_str(), critic_net_param);
+	caffe::ReadProtoFromTextFileOrDie(critic_net_filename.c_str(), critic_net_param);
   } else {
-    critic_net_param->CopyFrom(dqn::CreateCriticNet(num_features));
-    WriteProtoToTextFile(*critic_net_param, critic_net_filename.c_str());
+	critic_net_param->CopyFrom(dqn::CreateCriticNet(num_features));
+	WriteProtoToTextFile(*critic_net_param, critic_net_filename.c_str());
   }
   actor_solver_param.set_snapshot_prefix((save_prefix + "_actor").c_str());
   critic_solver_param.set_snapshot_prefix((save_prefix + "_critic").c_str());
@@ -262,27 +263,27 @@ void KeepPlayingGames(int tid, std::string save_prefix, int port) {
   critic_solver_param.set_clip_gradients(FLAGS_clip_grad);
 
   dqn::DQN* dqn = new dqn::DQN(actor_solver_param, critic_solver_param,
-                               save_prefix, num_features, tid);
+							   save_prefix, num_features, tid);
   // Load actor/critic/memory. Try to load from resumables
   // first. Otherwise load from the args.
   if (!last_actor_snapshot.empty()) {
-    dqn->RestoreActorSolver(last_actor_snapshot);
+	dqn->RestoreActorSolver(last_actor_snapshot);
   } else if (!GetArg(FLAGS_actor_snapshot, tid).empty()) {
-    dqn->RestoreActorSolver(GetArg(FLAGS_actor_snapshot, tid));
+	dqn->RestoreActorSolver(GetArg(FLAGS_actor_snapshot, tid));
   } else if (!GetArg(FLAGS_actor_weights, tid).empty()) {
-    dqn->LoadActorWeights(GetArg(FLAGS_actor_weights, tid));
+	dqn->LoadActorWeights(GetArg(FLAGS_actor_weights, tid));
   }
   if (!last_critic_snapshot.empty()) {
-    dqn->RestoreCriticSolver(last_critic_snapshot);
+	dqn->RestoreCriticSolver(last_critic_snapshot);
   } else if (!GetArg(FLAGS_critic_snapshot, tid).empty()) {
-    dqn->RestoreCriticSolver(GetArg(FLAGS_critic_snapshot, tid));
+	dqn->RestoreCriticSolver(GetArg(FLAGS_critic_snapshot, tid));
   } else if (!GetArg(FLAGS_critic_weights, tid).empty()) {
-    dqn->LoadCriticWeights(GetArg(FLAGS_critic_weights, 0));
+	dqn->LoadCriticWeights(GetArg(FLAGS_critic_weights, 0));
   }
   if (!last_memory_snapshot.empty()) {
-    dqn->LoadReplayMemory(last_memory_snapshot);
+	dqn->LoadReplayMemory(last_memory_snapshot);
   } else if (!GetArg(FLAGS_memory_snapshot, tid).empty()) {
-    dqn->LoadReplayMemory(GetArg(FLAGS_memory_snapshot, tid));
+	dqn->LoadReplayMemory(GetArg(FLAGS_memory_snapshot, tid));
   }
 
   HFOEnvironment env;
@@ -294,88 +295,97 @@ void KeepPlayingGames(int tid, std::string save_prefix, int port) {
   int target_id = tid == 0 ? 1 : 0;
   bool all_dqns_ready = false;
   while (!all_dqns_ready) {
-    little_sleep(std::chrono::microseconds(100));
-    all_dqns_ready = true;
-    for (int i=0; i<FLAGS_offense_agents; ++i) {
-      if (DQNS[i] == NULL) {
-        all_dqns_ready = false;
-      }
-    }
+	little_sleep(std::chrono::microseconds(100));
+	all_dqns_ready = true;
+	for (int i=0; i<FLAGS_offense_agents; ++i) {
+	  if (DQNS[i] == NULL) {
+		all_dqns_ready = false;
+	  }
+	}
   }
   // TID 0 is the Master and will do the sharing
   if (tid == 0) {
-    if (FLAGS_share_actor_layers > 0 || FLAGS_share_critic_layers > 0) {
-      for (int i=1; i<FLAGS_offense_agents; ++i) {
-        dqn::DQN* teammate = DQNS[i];
-        CHECK_NOTNULL(teammate);
-        dqn->ShareParameters(*teammate,
-                             FLAGS_share_actor_layers,
-                             FLAGS_share_critic_layers);
-      }
-    }
-    if (FLAGS_share_replay_memory) {
-      for (int i=1; i<FLAGS_offense_agents; ++i) {
-        dqn::DQN* teammate = DQNS[i];
-        CHECK_NOTNULL(teammate);
-        dqn->ShareReplayMemory(*teammate);
-      }
-    }
+	if (FLAGS_share_actor_layers > 0 || FLAGS_share_critic_layers > 0) {
+	  for (int i=1; i<FLAGS_offense_agents; ++i) {
+		dqn::DQN* teammate = DQNS[i];
+		CHECK_NOTNULL(teammate);
+		dqn->ShareParameters(*teammate,
+							 FLAGS_share_actor_layers,
+							 FLAGS_share_critic_layers);
+	  }
+	}
+	if (FLAGS_share_replay_memory) {
+	  for (int i=1; i<FLAGS_offense_agents; ++i) {
+		dqn::DQN* teammate = DQNS[i];
+		CHECK_NOTNULL(teammate);
+		dqn->ShareReplayMemory(*teammate);
+	  }
+	}
   }
 
   if (FLAGS_evaluate) {
-    Evaluate(env, *dqn, tid);
-    delete dqn;
-    env.act(QUIT);
-    env.step();
-    return;
+	Evaluate(env, *dqn, tid);
+	delete dqn;
+	env.act(QUIT);
+	env.step();
+	return;
   }
   if (FLAGS_benchmark) {
-    PlayOneEpisode(env, *dqn, FLAGS_evaluate_with_epsilon, true, tid);
-    dqn->Benchmark(1000);
-    delete dqn;
-    env.act(QUIT);
-    env.step();
-    return;
+	PlayOneEpisode(env, *dqn, FLAGS_evaluate_with_epsilon, true, tid);
+	dqn->Benchmark(1000);
+	delete dqn;
+	env.act(QUIT);
+	env.step();
+	return;
   }
   if (FLAGS_learn_offline) {
-    while (dqn->max_iter() < FLAGS_max_iter) {
-      dqn->Update();
-    }
-    dqn->Snapshot();
-    delete dqn;
-    env.act(QUIT);
-    env.step();
-    return;
+	while (dqn->max_iter() < FLAGS_max_iter) {
+	  dqn->Update();
+	}
+	dqn->Snapshot();
+	delete dqn;
+	env.act(QUIT);
+	env.step();
+	return;
   }
   int last_eval_iter = dqn->max_iter();
   double best_score = std::numeric_limits<double>::min();
-  for (int episode = 0; dqn->max_iter() < FLAGS_max_iter; ++episode) {
-    double epsilon = CalculateEpsilon(dqn->max_iter());
-    auto result = PlayOneEpisode(env, *dqn, epsilon, true, tid);
-    LOG(INFO) << "[Agent" << tid <<"] Episode " << episode
-              << " reward = " << std::get<0>(result);
-    int steps = std::get<1>(result);
-    int n_updates = int(steps * FLAGS_update_ratio);
-    if (FLAGS_share_replay_memory) { MTX.lock(); }
-    for (int i=0; i<n_updates; ++i) {
-      dqn->Update();
-    }
-    if (FLAGS_share_replay_memory) { MTX.unlock(); }
-    if (dqn->actor_iter() >= last_eval_iter + FLAGS_evaluate_freq) {
-      double avg_score = Evaluate(env, *dqn, tid);
-      if (avg_score > best_score) {
-        LOG(INFO) << "[Agent " << tid << "] New High Score: " << avg_score
-                  << ", actor_iter = " << dqn->actor_iter()
-                  << ", critic_iter = " << dqn->critic_iter();
-        best_score = avg_score;
-        dqn::RemoveFilesMatchingRegexp(dqn->save_path() + "_HiScore.*");
-        std::string fname = dqn->save_path() + "_HiScore" + std::to_string(avg_score);
-        dqn->Snapshot(fname, false, false);
-      }
-      last_eval_iter = dqn->actor_iter();
-    }
+  for (int episode = 0; dqn->max_iter() < FLAGS_max_iter; ++episode) 
+  {
+	double epsilon = CalculateEpsilon(dqn->max_iter());
+	auto result = PlayOneEpisode(env, *dqn, epsilon, true, tid);
+	LOG(INFO) << "[Agent" << tid <<"] Episode " << episode
+			  << " reward = " << std::get<0>(result);
+	int steps = std::get<1>(result);
+	int n_updates = int(steps * FLAGS_update_ratio);
+	if (FLAGS_share_replay_memory) { MTX.lock(); }
+	for (int i=0; i<n_updates; ++i) {
+	  dqn->Update();
+	}
+	if (FLAGS_share_replay_memory) { MTX.unlock(); }
+	if (dqn->actor_iter() >= last_eval_iter + FLAGS_evaluate_freq) 
+	{
+	  double avg_score = Evaluate(env, *dqn, tid);
+	  if (avg_score > best_score) 
+	  {
+		LOG(INFO) << "[Agent " << tid << "] New High Score: " << avg_score
+				  << ", actor_iter = " << dqn->actor_iter()
+				  << ", critic_iter = " << dqn->critic_iter();
+		best_score = avg_score;
+		dqn::RemoveFilesMatchingRegexp(dqn->save_path() + "_HiScore.*");
+		std::string fname = dqn->save_path() + "_HiScore" + std::to_string(avg_score);
+		
+		dqn->Snapshot(fname, false, FLAGS_save_memory);
+	  }
+	  else
+	  {
+		dqn->Snapshot(dqn->save_path(), false, FLAGS_save_memory);		// the function appends the iter_num 
+	  }
+
+	  last_eval_iter = dqn->actor_iter();
+	}
   }
-  dqn->Snapshot();
+  dqn->Snapshot();        // no need to save memory after training is complete.
   delete dqn;
   env.act(QUIT);
   env.step();
@@ -395,12 +405,12 @@ int main(int argc, char** argv) {
   google::InstallFailureSignalHandler();
   fLI::FLAGS_logbuflevel = -1;
   if (FLAGS_evaluate) {
-    google::LogToStderr();
+	google::LogToStderr();
   }
   if (FLAGS_save.empty() && !FLAGS_evaluate) {
-    LOG(ERROR) << "Save path (or evaluate) required but not set.";
-    LOG(ERROR) << "Usage: " << gflags::ProgramUsage();
-    exit(1);
+	LOG(ERROR) << "Save path (or evaluate) required but not set.";
+	LOG(ERROR) << "Usage: " << gflags::ProgramUsage();
+	exit(1);
   }
   path save_path(FLAGS_save);
   google::SetLogDestination(google::GLOG_INFO, (save_path.native() + "_INFO_").c_str());
@@ -408,34 +418,34 @@ int main(int argc, char** argv) {
   google::SetLogDestination(google::GLOG_ERROR, (save_path.native() + "_ERROR_").c_str());
   google::SetLogDestination(google::GLOG_FATAL, (save_path.native() + "_FATAL_").c_str());
   for (int i=0; i<12; ++i) { // Make the global pointers all null
-    DQNS[i] = NULL;
+	DQNS[i] = NULL;
   }
   srand(std::hash<std::string>()(save_path.native()));
   int port = rand() % 40000 + 20000;
   std::thread server_thread(
-      StartHFOServer, port, FLAGS_offense_agents + FLAGS_offense_dummies,
-      FLAGS_offense_npcs,
-      FLAGS_defense_agents + FLAGS_defense_dummies + FLAGS_defense_chasers,
-      FLAGS_defense_npcs);
+	  StartHFOServer, port, FLAGS_offense_agents + FLAGS_offense_dummies,
+	  FLAGS_offense_npcs,
+	  FLAGS_defense_agents + FLAGS_defense_dummies + FLAGS_defense_chasers,
+	  FLAGS_defense_npcs);
   std::thread player_threads[10];
   int threadNum = 0;
   for (int i=0; i<FLAGS_offense_agents; ++i) {
-    std::string save_prefix = save_path.native() + "_agent" + std::to_string(i);
-    player_threads[threadNum++] = std::thread(KeepPlayingGames, i, save_prefix, port);
-    sleep(10);
+	std::string save_prefix = save_path.native() + "_agent" + std::to_string(i);
+	player_threads[threadNum++] = std::thread(KeepPlayingGames, i, save_prefix, port);
+	sleep(10);
   }
   for (int i=0; i<FLAGS_offense_dummies; ++i) {
-    player_threads[threadNum++] = std::thread(StartDummyTeammate, port);
+	player_threads[threadNum++] = std::thread(StartDummyTeammate, port);
   }
   for (int i=0; i<FLAGS_defense_dummies; ++i) {
-    player_threads[threadNum++] = std::thread(StartDummyGoalie, port);
+	player_threads[threadNum++] = std::thread(StartDummyGoalie, port);
   }
   for (int i=0; i<FLAGS_defense_chasers; ++i) {
-    player_threads[threadNum++] = std::thread(StartChaser, port, "base_right",
-                                              i == 0 ? 1 : 0);
+	player_threads[threadNum++] = std::thread(StartChaser, port, "base_right",
+											  i == 0 ? 1 : 0);
   }
   for (int i = 0; i < threadNum; ++i) {
-    player_threads[i].join();
+	player_threads[i].join();
   }
   // StopHFOServer();
   server_thread.join();
