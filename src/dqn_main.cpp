@@ -26,7 +26,7 @@ DEFINE_string(critic_weights, "", "The critic pretrained weights load (*.caffemo
 DEFINE_string(actor_snapshot, "", "The actor solver state to load (*.solverstate).");
 DEFINE_string(critic_snapshot, "", "The critic solver state to load (*.solverstate).");
 DEFINE_string(memory_snapshot, "", "The replay memory to load (*.replaymemory).");
-DEFINE_bool(save_memory, false, "Save the experience replay as well in every snapshot.");
+// DEFINE_bool(save_memory, false, "Save the experience replay as well in every snapshot.");
 // Solver Args
 DEFINE_string(solver, "Adam", "Solver Type.");
 DEFINE_double(momentum, .95, "Solver momentum.");
@@ -375,11 +375,11 @@ void KeepPlayingGames(int tid, std::string save_prefix, int port) {
 		dqn::RemoveFilesMatchingRegexp(dqn->save_path() + "_HiScore.*");
 		std::string fname = dqn->save_path() + "_HiScore" + std::to_string(avg_score);
 		
-		dqn->Snapshot(fname, false, FLAGS_save_memory);
+		dqn->Snapshot(fname, false, FLAGS_share_replay_memory);
 	  }
 	  else
 	  {
-		dqn->Snapshot(dqn->save_path(), false, FLAGS_save_memory);		// the function appends the iter_num 
+		dqn->Snapshot(dqn->save_path(), false, FLAGS_share_replay_memory);	// the function appends the iter_num 
 	  }
 
 	  last_eval_iter = dqn->actor_iter();
