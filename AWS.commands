@@ -1,0 +1,17 @@
+-------------------------------------------------------------------------
+
+To mount the external volume after logging into an instance:
+
+# if this is the first time attaching a new volume
+
+lsblk
+sudo file -s /dev/xvdf
+# if the output is 'data', need to create a file system
+sudo mkfs -t ext4 /dev/xvdf
+
+# every time
+
+sudo mkdir /data
+sudo mount /dev/xvdf /data
+
+-------------------------------------------------------------------------

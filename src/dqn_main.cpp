@@ -35,7 +35,7 @@ DEFINE_double(actor_lr, .00001, "Solver learning rate.");
 DEFINE_double(critic_lr, .001, "Solver learning rate.");
 DEFINE_double(clip_grad, 10, "Clip gradients.");
 DEFINE_string(lr_policy, "fixed", "LR Policy.");
-DEFINE_int32(max_iter, 10000000, "Custom max iter.");
+DEFINE_int32(max_iter, 500000, "Custom max iter.");
 // Epsilon-Greedy Args
 DEFINE_int32(explore, 10000, "Iterations for epsilon to reach given value.");
 DEFINE_double(epsilon, .1, "Value of epsilon after explore iterations.");
