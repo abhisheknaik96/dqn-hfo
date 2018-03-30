@@ -225,6 +225,9 @@ void KeepPlayingGames(int tid, std::string save_prefix, int port) {
   int num_players = FLAGS_offense_agents + FLAGS_offense_npcs
 	  + FLAGS_offense_dummies + FLAGS_defense_agents + FLAGS_defense_npcs
 	  + FLAGS_defense_dummies + FLAGS_defense_chasers;
+  num_players += ((FLAGS_defense_goalie) ? 1 : 0);
+  LOG(INFO) << "Naive goalie : "<<((FLAGS_defense_goalie) ? 1 : 0);
+
   int num_features = NumStateFeatures(num_players);
   // Construct the solver
   caffe::SolverParameter actor_solver_param;
@@ -420,12 +423,17 @@ int main(int argc, char** argv) {
   for (int i=0; i<12; ++i) { // Make the global pointers all null
 	DQNS[i] = NULL;
   }
+  
+  int defAgents = FLAGS_defense_agents + FLAGS_defense_dummies + FLAGS_defense_chasers;
+  defAgents += (if (FLAGS_defense_goalie) ? 1 : 0);
+  if (FLAGS_defense_goalie)
+  	LOG(INFO) << "Added a naive goalie\n";
   srand(std::hash<std::string>()(save_path.native()));
   int port = rand() % 40000 + 20000;
   std::thread server_thread(
 	  StartHFOServer, port, FLAGS_offense_agents + FLAGS_offense_dummies,
 	  FLAGS_offense_npcs,
-	  FLAGS_defense_agents + FLAGS_defense_dummies + FLAGS_defense_chasers,
+	  defAgents,
 	  FLAGS_defense_npcs);
   std::thread player_threads[10];
   int threadNum = 0;

@@ -46,10 +46,20 @@ void StartDummyTeammate(int port) {
 }
 
 void StartDummyGoalie(int port) {
-  std::string cmd = "./bin/dummy_goalie " + std::to_string(port);
+  std::string cmd = "./bin/dummy_goalie --port " + std::to_string(port);
   cmd += " > /dev/null";
   LOG(INFO) << "Starting dummy goalie with command: " << cmd;
   CHECK_EQ(system(cmd.c_str()), 0) << "Unable to start dummy goalie.";
+  sleep(5);
+}
+
+void StartNaiveGoalie(int port, int startAfter) {
+  std::string cmd = "./goalie.py --port " + std::to_string(port);
+  cmd += " --playGoalie";
+  cmd += " --startAfter " + std::to_string(startAfter);  
+  cmd += " > /dev/null";
+  LOG(INFO) << "Starting naive goalie with command: " << cmd;
+  CHECK_EQ(system(cmd.c_str()), 0) << "Unable to start naive goalie.";
   sleep(5);
 }
 
@@ -177,7 +187,7 @@ float HFOGameState::reward() {
   float kickToGoalReward = 3. * kick_to_goal_reward();
   float passReward = 3. * pass_reward();
   float eotReward = EOT_reward();
-  float reward = moveToBallReward + kickToGoalReward + eotReward;
+  float reward = moveToBallReward + kickToGoalReward + eotReward + pass_reward; //
   extrinsic_reward += eotReward;
   total_reward += reward;
   VLOG(1) << "Overall_Reward: " << reward << " MTB: " << moveToBallReward

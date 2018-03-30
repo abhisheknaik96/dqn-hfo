@@ -1,11 +1,18 @@
 # Run this as : ./run.sh > log.stdout
 
 logDir="/data/logs"
-snapshotDir="/data/snapshots"
+snapshotDir="/data/snapshots/"
+rcgDir="1v1naive_run2"
+
+## 1v1naive
+fileName="1v1naive_run2"
+./bin/dqn --gpu -save=$snapshotDir/$fileName --offense_agents 1 --defense_goalie 2> $logDir/$fileName.stdout
 
 ## 1v1
-fileName="1v1h"
-./bin/dqn --gpu -save=$snapshotDir/$fileName --share_replay_memory --offense_agents 1 --defense_npcs 1 2> $logDir/$fileName.stdout
+# fileName="1v1h"
+# ./bin/dqn --gpu -save=$snapshotDir/$fileName --offense_agents 1 --defense_npcs 1 2> $logDir/$fileName.stdout
+
+###############################################################################
 
 ## Share to replay memory
 # fileName="2v0_sharedMemory"
