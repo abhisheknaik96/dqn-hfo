@@ -11,8 +11,30 @@ snapshotDir="/data/snapshots"
 #fileName="1v0_soccer_embedState_dim8_seq"
 #./bin/dqn --gpu -save=$snapshotDir/$fileName -max_iter 1000000 -tasks move_to_ball,kick_to_goal,soccer -state_embed -embed_dim 8 -curriculum sequential > $logDir/$fileName.stdout
 
-fileName="1v0_soccer_embedState_dim8_seq_2.5m"
-./bin/dqn --gpu -save=$snapshotDir/$fileName -max_iter 2500000 -tasks move_to_ball,kick_to_goal,soccer -state_embed -embed_dim 8 -curriculum sequential > $logDir/$fileName.stdout
+#fileName="1v0_soccer_embedState_dim8_seq_2.5m"
+#./bin/dqn --gpu -save=$snapshotDir/$fileName -max_iter 2500000 -tasks move_to_ball,kick_to_goal,soccer -state_embed -embed_dim 8 -curriculum sequential > $logDir/$fileName.stdout
+
+#fileName="1v0_soccer_embedWeight_dim128_seq_3m"
+#./bin/dqn --gpu -save=$snapshotDir/$fileName -max_iter 3000000 -tasks move_to_ball,kick_to_goal,soccer -weight_embed -embed_dim 128 -curriculum sequential > $logDir/$fileName.stdout
+
+# fileName="1v0_soccer_embedWeight_dim8_seq_2_5m"
+# ./bin/dqn --gpu -save=$snapshotDir/$fileName -max_iter 2500000 -tasks move_to_ball,kick_to_goal,soccer -weight_embed -embed_dim 8 -curriculum sequential > $logDir/$fileName.stdout
+
+# fileName="1v0_soccer_embedState_dim128_seq_2_5m"
+# ./bin/dqn --gpu -save=$snapshotDir/$fileName -max_iter 2500000 -tasks move_to_ball,kick_to_goal,soccer -state_embed -embed_dim 128 -curriculum sequential > $logDir/$fileName.stdout
+
+fileName="1v0_soccer_embedWeight_dim8_rnd_2_5m"
+./bin/dqn --gpu -save=$snapshotDir/$fileName -max_iter 2500000 -tasks move_to_ball,kick_to_goal,soccer -weight_embed -embed_dim 8 -curriculum random > $logDir/$fileName.stdout
+
+fileName="1v0_soccer_embedState_dim8_rnd_2_5m"
+./bin/dqn --gpu -save=$snapshotDir/$fileName -max_iter 2500000 -tasks move_to_ball,kick_to_goal,soccer -state_embed -embed_dim 8 -curriculum random > $logDir/$fileName.stdout
+
+fileName="1v0_soccer_embedNone_rnd_2_5m"
+./bin/dqn --gpu -save=$snapshotDir/$fileName -max_iter 2500000 -tasks move_to_ball,kick_to_goal,soccer -curriculum random > $logDir/$fileName.stdout
+
+fileName="1v0_soccer_embedNone_seq_2_5m"
+./bin/dqn --gpu -save=$snapshotDir/$fileName -max_iter 2500000 -tasks move_to_ball,kick_to_goal,soccer -curriculum sequential > $logDir/$fileName.stdout
+
 
 
 ####################################
